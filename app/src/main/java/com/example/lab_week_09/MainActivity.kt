@@ -10,7 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
+// import androidx.compose.material3.Button // Ini mungkin ada di file lain, pastikan tidak error
+// import com.example.lab_week_09.ui.elements.* // Impor elemen UI kustom Anda
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -42,7 +43,6 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Panggil fungsi Home() yang benar (tanpa parameter)
                     Home()
                 }
             }
@@ -55,7 +55,6 @@ class MainActivity : ComponentActivity() {
  */
 @Composable
 fun Home() {
-    // State untuk menampung daftar siswa, akan diingat selama recomposition.
     val listData = remember {
         mutableStateListOf(
             Student("Tanu"),
@@ -63,10 +62,8 @@ fun Home() {
             Student("Tono")
         )
     }
-    // State untuk menampung teks dari input field.
     val inputField = remember { mutableStateOf("") }
 
-    // Memanggil Composable yang bertanggung jawab untuk UI (presentasi)
     HomeContent(
         listData = listData,
         inputFieldValue = inputField.value,
@@ -75,9 +72,7 @@ fun Home() {
         },
         onButtonClick = {
             if (inputField.value.isNotBlank()) {
-                // Tambahkan siswa baru ke list
                 listData.add(Student(inputField.value))
-                // Kosongkan kembali input field
                 inputField.value = ""
             }
         }
@@ -86,7 +81,6 @@ fun Home() {
 
 /**
  * Composable yang hanya bertanggung jawab untuk menampilkan UI.
- * Ini adalah praktik yang baik untuk memisahkan logika state dari UI.
  */
 @Composable
 fun HomeContent(
@@ -95,41 +89,58 @@ fun HomeContent(
     onInputValueChange: (String) -> Unit,
     onButtonClick: () -> Unit
 ) {
+    // Terapkan padding dan alignment pada LazyColumn itu sendiri
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Item pertama dalam list: header dengan input dan tombol
+        // Bungkus semua konten header (judul, input, tombol) dalam satu 'item'
         item {
-            Text(text = stringResource(id = R.string.enter_item))
-
-            TextField(
-                value = inputFieldValue,
-                onValueChange = onInputValueChange,
-                label = { Text("Nama Siswa Baru") },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text
+            // Gunakan Column biasa untuk mengatur elemen header secara vertikal
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // TODO: Pastikan Anda sudah membuat composable `OnBackgroundTitleText`
+                // Jika belum, untuk sementara ganti dengan `Text` biasa
+                Text(
+                    text = stringResource(id = R.string.enter_item),
+                    style = MaterialTheme.typography.titleLarge
                 )
-            )
 
-            Button(onClick = onButtonClick) {
-                Text(text = stringResource(id = R.string.button_click))
+                TextField(
+                    value = inputFieldValue,
+                    onValueChange = onInputValueChange,
+                    label = { Text("Nama Siswa Baru") },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text
+                    )
+                )
+
+                // TODO: Pastikan Anda sudah membuat composable `PrimaryTextButton`
+                // Jika belum, ganti dengan `Button` biasa
+                androidx.compose.material3.Button(onClick = onButtonClick) {
+                    Text(text = stringResource(id = R.string.button_click))
+                }
             }
         }
 
-        // Tampilkan daftar siswa dari state
-        items(listData) { student ->
+        // Gunakan 'items' untuk menampilkan daftar data
+        items(listData) { item ->
+            // TODO: Pastikan Anda sudah membuat composable `OnBackgroundItemText`
+            // Jika belum, ganti dengan `Text` biasa
             Text(
-                text = student.name,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(vertical = 4.dp)
+                text = item.name,
+                modifier = Modifier.padding(vertical = 4.dp),
+                style = MaterialTheme.typography.bodyLarge
             )
         }
     }
 }
+
 
 /**
  * Fungsi Preview untuk melihat tampilan Home di Android Studio.
