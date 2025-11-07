@@ -5,13 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-// import androidx.compose.material3.Button // Ini mungkin ada di file lain, pastikan tidak error
-// import com.example.lab_week_09.ui.elements.* // Impor elemen UI kustom Anda
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,13 +27,29 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.lab_week_09.ui.theme.LAB_WEEK_09Theme
+// Pastikan Anda sudah membuat dan mengimpor elemen UI kustom Anda
+// import com.example.lab_week_09.ui.theme.OnBackgroundItemText
+// import com.example.lab_week_09.ui.theme.OnBackgroundTitleText
+// import com.example.lab_week_09.ui.theme.PrimaryTextButton
 
-// Pindahkan data class ke level atas (top-level)
-data class Student(
-    var name: String
-)
+// --- DATA CLASS DAN ROUTES ---
+data class Student(val name: String)
 
+object AppRoutes {
+    const val HOME = "home"
+    const val RESULT = "result"
+    const val LIST_DATA_ARG = "listData"
+    fun getResultRouteWithArgs() = "$RESULT/?$LIST_DATA_ARG={$LIST_DATA_ARG}"
+}
+
+// --- ACTIVITY UTAMA ---
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,18 +59,53 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Home()
+                    // Panggil App Composable sebagai root
+                    App()
                 }
             }
         }
     }
 }
 
-/**
- * Composable yang mengelola state untuk daftar siswa dan input field.
- */
+// --- GRAF NAVIGASI ---
 @Composable
-fun Home() {
+fun App() {
+    val navController = rememberNavController()
+    NavHost(
+        navController = navController,
+        startDestination = AppRoutes.HOME
+    ) {
+        // Rute untuk Halaman Home
+        composable(AppRoutes.HOME) {
+            Home(
+                onNavigateToResult = { listDataAsString ->
+                    // Encode data sebelum mengirim untuk keamanan URL
+                    navController.navigate("${AppRoutes.RESULT}/?$listDataAsString")
+                }
+            )
+        }
+
+        // Rute untuk Halaman Result dengan argumen opsional
+        composable(
+            route = AppRoutes.getResultRouteWithArgs(),
+            arguments = listOf(
+                navArgument(AppRoutes.LIST_DATA_ARG) {
+                    type = NavType.StringType
+                    nullable = true // Argumen bisa null
+                }
+            )
+        ) { backStackEntry ->
+            val arguments = requireNotNull(backStackEntry.arguments)
+            ResultContent(
+                listData = arguments.getString(AppRoutes.LIST_DATA_ARG).orEmpty()
+            )
+        }
+    }
+}
+
+// --- LAYAR HOME ---
+@Composable
+fun Home(onNavigateToResult: (String) -> Unit) {
     val listData = remember {
         mutableStateListOf(
             Student("Tanu"),
@@ -70,85 +121,101 @@ fun Home() {
         onInputValueChange = { newValue ->
             inputField.value = newValue
         },
-        onButtonClick = {
+        onAddButtonClick = {
             if (inputField.value.isNotBlank()) {
                 listData.add(Student(inputField.value))
-                inputField.value = ""
+                inputField.value = "" // Reset input field
             }
+        },
+        onNavigateButtonClick = {
+            // Ubah list menjadi string dan kirim
+            val listString = listData.joinToString(separator = ", ") { it.name }
+            onNavigateToResult("${AppRoutes.LIST_DATA_ARG}=$listString")
         }
     )
 }
 
-/**
- * Composable yang hanya bertanggung jawab untuk menampilkan UI.
- */
+// --- UI UNTUK LAYAR HOME ---
 @Composable
 fun HomeContent(
     listData: SnapshotStateList<Student>,
     inputFieldValue: String,
     onInputValueChange: (String) -> Unit,
-    onButtonClick: () -> Unit
+    onAddButtonClick: () -> Unit,
+    onNavigateButtonClick: () -> Unit
 ) {
-    // Terapkan padding dan alignment pada LazyColumn itu sendiri
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Bungkus semua konten header (judul, input, tombol) dalam satu 'item'
+        // Header: Judul, Input, dan Tombol-tombol
         item {
-            // Gunakan Column biasa untuk mengatur elemen header secara vertikal
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // TODO: Pastikan Anda sudah membuat composable `OnBackgroundTitleText`
-                // Jika belum, untuk sementara ganti dengan `Text` biasa
-                Text(
-                    text = stringResource(id = R.string.enter_item),
-                    style = MaterialTheme.typography.titleLarge
-                )
+                // TODO: Ganti dengan OnBackgroundTitleText jika sudah ada
+                Text(text = stringResource(id = R.string.enter_item), style = MaterialTheme.typography.titleLarge)
 
                 TextField(
                     value = inputFieldValue,
                     onValueChange = onInputValueChange,
                     label = { Text("Nama Siswa Baru") },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text
-                    )
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                 )
 
-                // TODO: Pastikan Anda sudah membuat composable `PrimaryTextButton`
-                // Jika belum, ganti dengan `Button` biasa
-                androidx.compose.material3.Button(onClick = onButtonClick) {
-                    Text(text = stringResource(id = R.string.button_click))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // TODO: Ganti dengan PrimaryTextButton jika sudah ada
+                    Button(onClick = onAddButtonClick) {
+                        Text(text = stringResource(id = R.string.button_click))
+                    }
+                    Button(onClick = onNavigateButtonClick) {
+                        Text(text = stringResource(id = R.string.button_navigate))
+                    }
                 }
             }
         }
 
-        // Gunakan 'items' untuk menampilkan daftar data
-        items(listData) { item ->
-            // TODO: Pastikan Anda sudah membuat composable `OnBackgroundItemText`
-            // Jika belum, ganti dengan `Text` biasa
-            Text(
-                text = item.name,
-                modifier = Modifier.padding(vertical = 4.dp),
-                style = MaterialTheme.typography.bodyLarge
-            )
+        // Daftar nama siswa
+        items(listData) { student ->
+            // TODO: Ganti dengan OnBackgroundItemText jika sudah ada
+            Text(text = student.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(vertical = 4.dp))
         }
     }
 }
 
+// --- LAYAR RESULT ---
+@Composable
+fun ResultContent(listData: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(text = "Data yang Dikirim:", style = MaterialTheme.typography.titleMedium)
+        // TODO: Ganti dengan OnBackgroundItemText jika sudah ada
+        Text(text = listData.ifEmpty { "Tidak ada data yang dikirim." }, style = MaterialTheme.typography.bodyLarge)
+    }
+}
 
-/**
- * Fungsi Preview untuk melihat tampilan Home di Android Studio.
- */
-@Preview(showBackground = true, name = "Home Preview")
+// --- PREVIEWS ---
+@Preview(showBackground = true, name = "Home Screen Preview")
 @Composable
 fun PreviewHome() {
     LAB_WEEK_09Theme {
-        Home()
+        Home(onNavigateToResult = {}) // Beri lambda kosong untuk preview
+    }
+}
+
+@Preview(showBackground = true, name = "Result Screen Preview")
+@Composable
+fun PreviewResult() {
+    LAB_WEEK_09Theme {
+        ResultContent(listData = "Tanu, Tina, Tono")
     }
 }
