@@ -16,6 +16,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -23,6 +27,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.lab_week_09.ui.theme.LAB_WEEK_09Theme
+
+// Pindahkan data class ke level atas (top-level)
+data class Student(
+    var name: String
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,9 +42,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val list = listOf("Tanu", "Tina", "Tono")
-                    // Panggil Home composable dengan data list
-                    Home(items = list)
+                    // Panggil fungsi Home() yang benar (tanpa parameter)
+                    Home()
                 }
             }
         }
@@ -43,59 +51,93 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * Composable utama yang menampilkan input field dan list data.
- * @param items List string yang akan ditampilkan.
+ * Composable yang mengelola state untuk daftar siswa dan input field.
  */
 @Composable
-fun Home(items: List<String>) {
-    // LazyColumn lebih efisien untuk menampilkan list karena hanya merender
-    // item yang terlihat di layar, mirip seperti RecyclerView.
+fun Home() {
+    // State untuk menampung daftar siswa, akan diingat selama recomposition.
+    val listData = remember {
+        mutableStateListOf(
+            Student("Tanu"),
+            Student("Tina"),
+            Student("Tono")
+        )
+    }
+    // State untuk menampung teks dari input field.
+    val inputField = remember { mutableStateOf("") }
+
+    // Memanggil Composable yang bertanggung jawab untuk UI (presentasi)
+    HomeContent(
+        listData = listData,
+        inputFieldValue = inputField.value,
+        onInputValueChange = { newValue ->
+            inputField.value = newValue
+        },
+        onButtonClick = {
+            if (inputField.value.isNotBlank()) {
+                // Tambahkan siswa baru ke list
+                listData.add(Student(inputField.value))
+                // Kosongkan kembali input field
+                inputField.value = ""
+            }
+        }
+    )
+}
+
+/**
+ * Composable yang hanya bertanggung jawab untuk menampilkan UI.
+ * Ini adalah praktik yang baik untuk memisahkan logika state dari UI.
+ */
+@Composable
+fun HomeContent(
+    listData: SnapshotStateList<Student>,
+    inputFieldValue: String,
+    onInputValueChange: (String) -> Unit,
+    onButtonClick: () -> Unit
+) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp) // Memberi jarak antar elemen
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Blok 'item' pertama untuk menampilkan header (input dan tombol)
+        // Item pertama dalam list: header dengan input dan tombol
         item {
-            // Kita bungkus header dalam Column agar teratur secara vertikal
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(text = stringResource(id = R.string.enter_item))
+            Text(text = stringResource(id = R.string.enter_item))
 
-                TextField(
-                    value = "", // Seharusnya dihubungkan dengan state
-                    onValueChange = { /* TODO: Handle state change */ },
-                    label = { Text("Input Angka") },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number
-                    )
+            TextField(
+                value = inputFieldValue,
+                onValueChange = onInputValueChange,
+                label = { Text("Nama Siswa Baru") },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text
                 )
+            )
 
-                Button(onClick = { /* TODO: Handle click */ }) {
-                    Text(text = stringResource(id = R.string.button_click))
-                }
+            Button(onClick = onButtonClick) {
+                Text(text = stringResource(id = R.string.button_click))
             }
         }
 
-        // Blok 'items' untuk menampilkan list data dari parameter
-        items(items) { item ->
-            Text(text = item, style = MaterialTheme.typography.bodyLarge)
+        // Tampilkan daftar siswa dari state
+        items(listData) { student ->
+            Text(
+                text = student.name,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
         }
     }
 }
 
 /**
- * Fungsi Preview untuk menampilkan composable Home di Android Studio.
- * Ini hanya untuk keperluan development dan tidak akan masuk ke dalam aplikasi final.
+ * Fungsi Preview untuk melihat tampilan Home di Android Studio.
  */
 @Preview(showBackground = true, name = "Home Preview")
 @Composable
 fun PreviewHome() {
     LAB_WEEK_09Theme {
-        Home(listOf("Tanu", "Tina", "Tono", "Tini", "Tutu"))
+        Home()
     }
 }
